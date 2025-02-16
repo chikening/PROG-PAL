@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+     <style>
+        .code-wrapper {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 0.5rem;
+        }
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+        }
+        .code-explanation {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex items-center gap-4 mb-8">
+            <img src="{{ url_for('static', filename='./img/logo.png') }}" alt="PAL Logo" class="w-12 h-12 object-contain">
+            <h1 class="text-3xl font-bold">ProgPaL: Your Programming AI Learning Assistant</h1>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="mb-8">
+            <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <button onclick="showTab('study-plan')" class="tab-button bg-white px-4 py-3 rounded-lg shadow-sm hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 active" data-tab="study-plan">
+                    <i data-feather="book-open" class="w-4 h-4"></i>
+                    Study Plan
+                </button>
+                <button onclick="showTab('concept')" class="tab-button bg-white px-4 py-3 rounded-lg shadow-sm hover:bg-blue-50 transition-colors flex items-center justify-center gap-2" data-tab="concept">
+                    <i data-feather="cpu" class="w-4 h-4"></i>
+                    Explain Concept
+                </button>
+                <button onclick="showTab('quiz')" class="tab-button bg-white px-4 py-3 rounded-lg shadow-sm hover:bg-blue-50 transition-colors flex items-center justify-center gap-2" data-tab="quiz">
+                    <i data-feather="help-circle" class="w-4 h-4"></i>
+                    Generate Quiz
+                </button>
+            </div>
+        </div>
+
+        <!-- Study Plan Tab -->
+        <div id="study-plan-tab" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-xl font-semibold mb-4">Create Study Plan</h2>
+                <form id="studyPlanForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Topic</label>
+                        <input type="text" name="topic" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Current Level</label>
+                        <select name="current_level" class="w-full p-2 border rounded">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Learning Goal</label>
+                        <input type="text" name="goal" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Timeframe (weeks)</label>
+                        <input type="number" name="timeframe" class="w-full p-2 border rounded" min="1" max="52">
+                    </div>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Generate Plan
+                    </button>
+                    <button type="button" onclick="clearStudyPlan()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Clear Results
+                    </button>
+                </form>
+                <div id="studyPlanResult" class="mt-4 prose"></div>
+            </div>
+        </div>
+
+        <!-- Concept Tab -->
+        <div id="concept-tab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto">
+                <div class="bg-blue-500 p-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-feather="code" class="w-6 h-6"></i>
+                        Code Concept Explorer
+                    </h2>
+                </div>
+
+                <form id="conceptForm" class="p-6 space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Code or Concept to Analyze</label>
+                        <textarea 
+                            name="concept" 
+                            class="w-full h-48 p-3 border rounded-lg font-mono text-sm resize-y bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Paste your code here or describe the concept you want to understand...">
+                       </textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Programming Language</label>
+                            <select name="language" class="w-full p-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500">
+                                <option value="python">Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="java">Java</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Explanation Depth</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center p-2 rounded-lg cursor-pointer hover:bg-gray-50 border">
+                                    <input type="radio" name="depth" value="beginner" checked class="hidden">
+                                    <i data-feather="book-open" class="w-4 h-4 text-blue-500 mr-2"></i>
+                                    <span class="text-sm">Beginner (Basic Concepts)</span>
+                                </label>
+                                <label class="flex items-center p-2 rounded-lg cursor-pointer hover:bg-gray-50 border">
+                                    <input type="radio" name="depth" value="intermediate" class="hidden">
+                                    <i data-feather="code" class="w-4 h-4 text-blue-500 mr-2"></i>
+                                    <span class="text-sm">Intermediate (Implementation Details)</span>
+                                </label>
+                                <label class="flex items-center p-2 rounded-lg cursor-pointer hover:bg-gray-50 border">
+                                    <input type="radio" name="depth" value="advanced" class="hidden">
+                                    <i data-feather="git-branch" class="w-4 h-4 text-blue-500 mr-2"></i>
+                                    <span class="text-sm">Advanced (In-depth Analysis)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                            <i data-feather="zap" class="w-4 h-4"></i>
+                            Analyze Code
+                        </button>
+                        <button type="button" onclick="clearConcept()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">
+                            <i data-feather="trash-2" class="w-4 h-4"></i>
+                            Clear
+                        </button>
+                    </div>
+                </form>
+
+                <div id="conceptResult" class="hidden p-6 bg-gray-50 border-t space-y-6">
+                <!-- Analysis sections will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Tab -->
+        <div id="quiz-tab" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-xl font-semibold mb-4">Generate Quiz</h2>
+                <form id="quizForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Topic</label>
+                        <input type="text" name="topic" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Difficulty</label>
+                        <select name="difficulty" class="w-full p-2 border rounded">
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        Generate Quiz
+                    </button>
+                    <button type="button" onclick="clearQuiz()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Clear Results
+                    </button>
+                </form>
+                <div id="quizResult" class="mt-4"></div>
+            </div>
+        </div>
+
+    <script>
+        // Initialize Feather Icons
+        
+        // Your existing script code goes here
+        async function callAPI(endpoint, data) {
+            const response = await fetch(`/api/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        }
+
+        // Study Plan Form
+        document.getElementById('studyPlanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                topic: form.topic.value,
+                current_level: form.current_level.value,
+                goal: form.goal.value,
+                timeframe: parseInt(form.timeframe.value)
+            };
+            
+            const result = await callAPI('study-plan', data);
+            const formattedResult = `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-2">Study Overview</h3>
+                        <p class="text-blue-700">Topic: ${data.topic}</p>
+                        <p class="text-blue-700">Level: ${data.current_level}</p>
+                        <p class="text-blue-700">Goal: ${data.goal}</p>
+                        <p class="text-blue-700">Duration: ${data.timeframe} weeks</p>
+                    </div>
+                    <div class="study-plan-content">
+                        ${marked.parse(result.plan)}
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="printStudyPlan()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2">
+                            Print Plan
+                        </button>
+                        <button onclick="downloadStudyPlan()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('studyPlanResult').innerHTML = formattedResult;
+        });
+
+        document.querySelectorAll('input[name="depth"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove active class from all labels
+                document.querySelectorAll('input[name="depth"]').forEach(r => {
+                    r.parentElement.classList.remove('bg-blue-50', 'border-blue-500', 'border-2');
+                });
+                // Add active class to selected label
+                if (this.checked) {
+                    this.parentElement.classList.add('bg-blue-50', 'border-blue-500', 'border-2');
+                }
+            });
+        });
+
+          // Concept Form
+         // Modify your existing conceptForm event listener
+        document.getElementById('conceptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('conceptResult');
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i data-feather="loader" class="w-4 h-4 animate-spin"></i> Analyzing...';
+            feather.replace();
+            
+            const data = {
+                concept: form.concept.value,
+                language: form.language.value,
+                depth: form.querySelector('input[name="depth"]:checked').value
+            };
+            
+            try {
+                const result = await callAPI('explain', data);
+                
+                // Create the enhanced result HTML
+                const formattedResult = `
+                    <div class="space-y-6">
+                        <!-- Original Code Section -->
+                        <div class="analysis-section">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Original Code</h3>
+                            <div class="code-wrapper">
+                                <button onclick="copyCode(this)" class="copy-button bg-gray-700 text-white px-3 py-1 rounded text-sm hover:bg-gray-600">
+                                    Copy
+                                </button>
+                                <pre class="p-4 text-white overflow-x-auto"><code class="language-${data.language}">${escapeHtml(data.concept)}</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Explanation Section -->
+                        <div class="analysis-section">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Code Analysis</h3>
+                            <div class="code-explanation p-4 rounded">
+                                <div class="prose max-w-none">
+                                    ${marked.parse(result.explanation)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Improvement Suggestions -->
+                        <div class="analysis-section">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Suggested Improvements</h3>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="prose max-w-none">
+                                    ${marked.parse(result.improvements || 'No specific improvements suggested.')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Resources -->
+                        ${result.resources ? `
+                        <div class="analysis-section">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Additional Resources</h3>
+                            <div class="bg-gray-50 p-4 rounded-lg border">
+                                <div class="prose max-w-none">
+                                    ${marked.parse(result.resources)}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Show the result
+                resultDiv.innerHTML = formattedResult;
+                resultDiv.classList.remove('hidden');
+                
+                // Animate sections in
+                setTimeout(() => {
+                    document.querySelectorAll('.analysis-section').forEach((section, index) => {
+                        setTimeout(() => {
+                            section.classList.add('show');
+                        }, index * 150);
+                    });
+                }, 100);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="bg-red-50 text-red-700 p-4 rounded-lg">
+                        An error occurred while analyzing the code. Please try again.
+                    </div>
+                `;
+            } finally {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i data-feather="zap" class="w-4 h-4"></i> Analyze Code';
+                feather.replace();
+            }
+        });
+        // Quiz Form
+        document.getElementById('quizForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('quizResult');
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Generating Quiz...';
+            resultDiv.innerHTML = '<div class="animate-pulse p-4 bg-gray-100 rounded">Generating quiz...</div>';
+
+            try {
+                const result = await callAPI('quiz', {
+                topic: form.topic.value,
+                difficulty: form.difficulty.value
+            });
+        
+        // Clean the response to remove code blocks
+                const cleanJson = result.quiz
+                    .replace(/```json\s?/g, '')
+                    .replace(/```/g, '')
+                    .trim();
+            
+                const quiz = JSON.parse(cleanJson);
+        
+                const quizHTML = quiz.questions.map((q, i) => `
+                    <div class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                        <p class="font-semibold mb-2">${i + 1}. ${q.question}</p>
+                        <div class="space-y-2">
+                            ${q.options.map(option => `
+                                <div class="flex items-center p-2 hover:bg-gray-50 rounded">
+                                    <input type="radio" id="q${i}_${option.charAt(0)}" name="q${i}" 
+                                        value="${option.charAt(0)}" class="mr-2">
+                                    <label for="q${i}_${option.charAt(0)}">${option}</label>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-600 hidden">
+                            <strong>Correct Answer:</strong> ${q.correct_answer}<br>
+                            <strong>Explanation:</strong> ${q.explanation}
+                        </div>
+                    </div>
+                `).join('');
+        
+                resultDiv.innerHTML = `
+                    <div class="space-y-4">
+                        ${quizHTML}
+                        <button onclick="showQuizAnswers()" 
+                            class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        Show Answers
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Quiz generation error:', error);
+                resultDiv.innerHTML = `
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                        <p class="text-red-700">Failed to generate quiz. Please try again.</p>
+                        <p class="text-sm text-red-600">${error.message}</p>
+                        <pre class="mt-2 text-xs text-gray-600">${result?.quiz || 'No response data'}</pre>
+                    </div>
+                `;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Generate Quiz';
+            }
+        });
+
+        function showQuizAnswers() {
+            const button = document.querySelector('#quizResult button');
+            const answers = document.querySelectorAll('#quizResult .text-gray-600');
+    
+            answers.forEach(el => el.classList.toggle('hidden'));
+            button.textContent = button.textContent === 'Show Answers' ? 'Hide Answers' : 'Show Answers';
+    }
+        function clearStudyPlan() {
+    // Clear form fields
+            document.getElementById('studyPlanForm').reset();
+    // Clear and hide results
+            clearResults('studyPlanResult');
+            contentDiv.innerHTML = '';
+            container.classList.add('hidden');
+    }
+
+// Function to clear concept explanation
+         function clearConcept() {
+            const form = document.getElementById('conceptForm');
+            const resultDiv = document.getElementById('conceptResult');
+            
+            // Clear form with animation
+            form.reset();
+            
+            // Hide result with animation
+            resultDiv.style.opacity = '0';
+            setTimeout(() => {
+                resultDiv.classList.add('hidden');
+                resultDiv.innerHTML = '';
+                resultDiv.style.opacity = '1';
+            }, 300);
+            
+            // Reset depth selection styling
+            document.querySelectorAll('input[name="depth"]').forEach(radio => {
+                radio.parentElement.classList.remove('bg-blue-50', 'border-blue-500', 'border-2');
+            });
+            document.querySelector('input[name="depth"][value="beginner"]').parentElement.classList.add('bg-blue-50', 'border-blue-500', 'border-2');
+    }   
+         function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+    }
+         // Copy code function
+        function copyCode(button) {
+            const pre = button.nextElementSibling;
+            const code = pre.querySelector('code');
+            const text = code.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            });
+    }
+
+// Function to clear quiz
+        function clearQuiz() {
+    // Clear form fields
+            document.getElementById('quizForm').reset();
+    // Clear and hide results
+            clearResults('quizResult');
+            contentDiv.innerHTML = '';
+            container.classList.add('hidden');
+    }   
+
+        function printStudyPlan() {
+            window.print();
+    }
+
+    function downloadStudyPlan() {
+        const studyPlanContent = document.getElementById('studyPlanResult');
+    
+        const opt = {
+            margin: 1,
+            filename: 'study-plan.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+    // Generate PDF
+        html2pdf().from(studyPlanContent)
+            .set(opt)
+            .save()
+            .catch(error => {
+                console.error('Error generating PDF:', error);
+                alert('There was an error generating the PDF. Please try again.');
+            });
+    }
+    function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('bg-blue-50');
+                button.classList.add('bg-white');
+            });
+            
+            // Show selected tab content
+            document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+            
+            // Set active tab button
+            const activeButton = document.querySelector(`[data-tab="${tabId}"]`);
+            activeButton.classList.remove('bg-white');
+            activeButton.classList.add('bg-blue-50');
+    }
+
+    feather.replace();
+
+    </script>
+</body>
+</html>
